@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BG TV MAX - Philips Lite</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        body { background: #050505; color: #fff; font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 10px; }
+        .player-container { position: sticky; top: 0; background: #050505; padding-bottom: 10px; z-index: 100; }
+        video { width: 100%; max-width: 720px; aspect-ratio: 16/9; display: block; margin: 0 auto; border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 10px; }
+        button { 
+            background: #1a1a1a; border: 1px solid #333; color: #ccc; padding: 12px 5px; font-size: 14px; 
+            cursor: pointer; border-radius: 5px; outline: none; transition: 0.2s;
+        }
+        button:focus { background: #0056b3; color: #fff; border-color: #fff; transform: scale(1.05); box-shadow: 0 0 10px #0056b3; }
+        .cat-title { font-size: 12px; color: #555; text-transform: uppercase; margin: 15px 0 5px 10px; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+
+    <div class="player-container">
+        <video id="video" controls autoplay playsinline></video>
+        <div id="now-playing" style="text-align:center; font-size:12px; margin-top:5px; color:#aaa;">Изберете канал</div>
+    </div>
+
+    <div id="channel-grid" class="grid">
+        </div>
+
+    <script>
+        // Използваме прокси за заобикаляне на CORS защити при някои канали
+        const proxy = "https://corsproxy.io/?";
+
+        const channels = [
+            // Национални
+            { name: "БНТ 1", url: "https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8" },
+            { name: "БНТ 2", url: "https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8" },
+            { name: "БНТ 3 HD", url: "https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8" },
+            { name: "БНТ 4", url: "https://bntlive-cn.cdn.bg/live/color/bnt4/playlist.m3u8" },
+            { name: "БНТ Регионален", url: "https://bntlive-cn.cdn.bg/live/color/bnt_vidin/playlist.m3u8" },
+            { name: "Bulgaria ON AIR", url: "https://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8" },
+            { name: "Nova TV (Test)", url: "https://195.24.51.58/hls/nova_live.m3u8" },
+            { name: "bTV (Test)", url: "https://itv.bg/live/btv/playlist.m3u8" },
+            
+            // Новини и Бизнес
+            { name: "Bloomberg BG", url: "https://p.cdn.bg/liven/bloomberg/index.m3u8" },
+            { name: "TV1 HD", url: "https://tv1.bg/hls/tv1_1080.m3u8" },
+            { name: "Евроком", url: "http://93.155.230.12:8081/hls/live.m3u8" },
+            
+            // Музика
+            { name: "The Voice", url: proxy + "https://bss1.neterra.tv/thevoice/stream_0.m3u8" },
+            { name: "Magic TV", url: proxy + "https://bss1.neterra.tv/magictv/stream_0.m3u8" },
+            { name: "City TV", url: "https://tv.city.bg/play/tshls/citytv/2.m3u8" },
+            { name: "FEN TV", url: "http://84.22.46.188/play/a00y" },
+            { name: "Balkanika TV", url: "http://84.22.46.188/play/a00x" },
+            { name: "Planeta Folk", url: "http://84.22.46.188/play/a00l" },
+            { name: "Folklor TV", url: "http://84.22.46.188/play/a00n" },
+            
+            // Други
+            { name: "Agro TV", url: "https://p.cdn.bg/liven/agrotv/index.m3u8" },
+            { name: "Destination BG", url: "https://p.cdn.bg/liven/destbg/index.m3u8" },
+            { name: "Plovdiv TV", url: "http://46.47.93.2:1935/live/livestream/playlist.m3u8" },
+            { name: "Travel TV (Alt)", url: "http://84.22.46.188/play/a00p" }
+        ];
+
+        const video = document.getElementById('video');
+        const grid = document.getElementById('channel-grid');
+        const status = document.getElementById('now-playing');
+        let hls = new Hls();
+
+        function play(url, name) {
+            status.innerText = "Зареждане: " + name;
+            if (Hls.isSupported()) {
+                hls.destroy();
+                hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play();
+                    status.innerText = "В момента гледате: " + name;
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) status.innerText = "Грешка при зареждане на " + name;
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+                video.play();
+            }
+        }
+
+        channels.forEach(ch => {
+            const btn = document.createElement('button');
+            btn.innerText = ch.name;
+            btn.onclick = () => play(ch.url, ch.name);
+            // Поддръжка за дистанционно - Enter ключ
+            btn.onkeydown = (e) => { if(e.keyCode === 13) play(ch.url, ch.name); };
+            grid.appendChild(btn);
+        });
+
+        // Стартираме с първия канал автоматично
+        play(channels[0].url, channels[0].name);
+        
+    </script>
+</body>
+</html>
