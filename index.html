@@ -2,24 +2,22 @@
 <html lang="bg">
 <head>
     <meta charset="UTF-8">
-    <meta name="referrer" content="no-referrer">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Philips BG TV - Ultimate Lite</title>
+    <title>BG TV - Ultimate Proxy Fix</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; text-align: center; }
-        .player-header { position: sticky; top: 0; background: #000; padding: 10px 0; border-bottom: 2px solid #333; z-index: 1000; }
-        video { width: 100%; max-width: 720px; aspect-ratio: 16/9; background: #111; }
+        .player-wrapper { position: sticky; top: 0; background: #000; padding: 15px 0; border-bottom: 2px solid #333; z-index: 1000; }
+        video { width: 95%; max-width: 750px; aspect-ratio: 16/9; background: #111; }
         #status { font-size: 14px; color: #00ff00; margin: 10px 0; min-height: 1.2em; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 20px; max-width: 1000px; margin: 0 auto; }
         button { background: #222; border: 1px solid #444; color: #fff; padding: 15px 5px; cursor: pointer; border-radius: 8px; font-size: 14px; transition: 0.2s; }
-        /* Визуален фокус за дистанционното на Philips */
         button:focus { background: #0066ff; border-color: #fff; transform: scale(1.1); outline: none; box-shadow: 0 0 15px #0066ff; }
     </style>
 </head>
 <body>
 
-<div class="player-header">
+<div class="player-wrapper">
     <video id="video" controls autoplay playsinline></video>
     <div id="status">Изберете канал</div>
 </div>
@@ -28,27 +26,27 @@
     </div>
 
 <script>
-    const channels = [
-        // ТЕЗИ РАБОТЯТ ПРИ ТЕБ
-        { name: "City TV", url: "https://tv.city.bg/play/tshls/citytv/2.m3u8" },
-        { name: "The Voice", url: "https://bss1.neterra.tv/thevoice/stream_0.m3u8" },
-        { name: "Magic TV", url: "https://bss1.neterra.tv/magictv/stream_0.m3u8" },
-        
-        // НОВА И BTV (АЛТЕРНАТИВНИ)
-        { name: "Nova TV", url: "https://195.24.51.58/hls/nova_live.m3u8" },
-        { name: "bTV", url: "https://itv.bg/live/btv/playlist.m3u8" },
+    // Използваме тествано CORS прокси за каналите със защита
+    const proxy = "https://corsproxy.io/?";
 
-        // БНТ ПАКЕТ
-        { name: "БНТ 1", url: "https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8" },
-        { name: "БНТ 2", url: "https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8" },
-        { name: "БНТ 3 HD", url: "https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8" },
+    const channels = [
+        // Тези работят директно
+        { name: "City TV", url: "https://tv.city.bg/play/tshls/citytv/2.m3u8", useProxy: false },
+        { name: "The Voice", url: "https://bss1.neterra.tv/thevoice/stream_0.m3u8", useProxy: false },
+        { name: "Magic TV", url: "https://bss1.neterra.tv/magictv/stream_0.m3u8", useProxy: false },
         
-        // ДРУГИ СТАБИЛНИ
-        { name: "Bulgaria On Air", url: "https://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8" },
-        { name: "TV1 HD", url: "https://tv1.bg/hls/tv1_1080.m3u8" },
-        { name: "Bloomberg BG", url: "https://p.cdn.bg/liven/bloomberg/index.m3u8" },
-        { name: "Agro TV", url: "https://p.cdn.bg/liven/agrotv/index.m3u8" },
-        { name: "Evrokom", url: "http://93.155.230.12:8081/hls/live.m3u8" }
+        // Тези изискват прокси, за да тръгнат в браузър/GitHub
+        { name: "БНТ 1", url: "https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8", useProxy: true },
+        { name: "БНТ 2", url: "https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8", useProxy: true },
+        { name: "БНТ 3 HD", url: "https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8", useProxy: true },
+        { name: "Bulgaria On Air", url: "https://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8", useProxy: true },
+        { name: "Nova TV", url: "https://195.24.51.58/hls/nova_live.m3u8", useProxy: true },
+        { name: "bTV", url: "https://itv.bg/live/btv/playlist.m3u8", useProxy: true },
+        
+        // Други
+        { name: "TV1 HD", url: "https://tv1.bg/hls/tv1_1080.m3u8", useProxy: false },
+        { name: "Bloomberg BG", url: "https://p.cdn.bg/liven/bloomberg/index.m3u8", useProxy: true },
+        { name: "Agro TV", url: "https://p.cdn.bg/liven/agrotv/index.m3u8", useProxy: true }
     ];
 
     const video = document.getElementById('video');
@@ -56,13 +54,15 @@
     const container = document.getElementById('container');
     let hls = null;
 
-    function play(url, name) {
+    function play(url, name, useProxy) {
+        let finalUrl = useProxy ? proxy + encodeURIComponent(url) : url;
         status.innerText = "Зареждане: " + name;
+        
         if (hls) hls.destroy();
 
         if (Hls.isSupported()) {
             hls = new Hls();
-            hls.loadSource(url);
+            hls.loadSource(finalUrl);
             hls.attachMedia(video);
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play();
@@ -70,32 +70,25 @@
             });
             hls.on(Hls.Events.ERROR, (event, data) => {
                 if (data.fatal) {
-                    status.innerText = "Каналът " + name + " не е достъпен в момента.";
-                    console.error("HLS Error:", data);
+                    status.innerText = "Грешка при " + name + ". Пробвайте пак.";
                 }
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = url;
+            video.src = finalUrl;
             video.play();
         }
     }
 
-    // Генериране на бутони
     channels.forEach(ch => {
         const btn = document.createElement('button');
         btn.innerText = ch.name;
-        btn.onclick = () => play(ch.url, ch.name);
-        
-        // Добавяме Enter за дистанционното
-        btn.onkeydown = (e) => {
-            if (e.keyCode === 13) play(ch.url, ch.name);
-        };
-        
+        btn.onclick = () => play(ch.url, ch.name, ch.useProxy);
+        btn.onkeydown = (e) => { if(e.keyCode === 13) play(ch.url, ch.name, ch.useProxy); };
         container.appendChild(btn);
     });
 
-    // Първоначално пускаме City TV (щом знаеш, че работи)
-    window.onload = () => play(channels[0].url, channels[0].name);
+    // Стартираме с City TV
+    window.onload = () => play(channels[0].url, channels[0].name, channels[0].useProxy);
 </script>
 
 </body>
