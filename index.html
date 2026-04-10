@@ -1,107 +1,81 @@
 <!DOCTYPE html>
-<html lang="bg">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="referrer" content="no-referrer">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BG TV - Philips Lite Edition</title>
+    <title>BG TV - Philips Ultimate</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 10px; }
-        .player-wrapper { position: sticky; top: 0; background: #000; padding: 10px 0; border-bottom: 2px solid #222; z-index: 100; }
-        video { width: 100%; max-width: 800px; aspect-ratio: 16/9; display: block; margin: 0 auto; background: #111; }
-        .status { text-align: center; font-size: 14px; margin: 10px 0; color: #ffcc00; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-width: 900px; margin: 0 auto; padding: 10px; }
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; }
+        .vid-container { position: sticky; top: 0; background: #000; padding: 10px 0; border-bottom: 3px solid #333; }
+        video { width: 95%; max-width: 700px; background: #111; aspect-ratio: 16/9; }
+        .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 15px; }
         button { 
-            background: #1a1a1a; border: 2px solid #333; color: #eee; padding: 15px 5px; font-size: 16px; 
-            cursor: pointer; border-radius: 8px; outline: none; transition: 0.2s;
+            background: #222; border: 2px solid #444; color: #fff; padding: 12px; 
+            min-width: 120px; font-size: 14px; border-radius: 5px; cursor: pointer;
         }
-        button:focus { background: #0066ff; border-color: #fff; transform: scale(1.1); box-shadow: 0 0 15px #0066ff; }
+        button:focus { background: #ff0055; border-color: #fff; outline: none; transform: scale(1.1); }
+        #log { font-size: 12px; color: #666; margin: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="player-wrapper">
-        <video id="video" controls autoplay playsinline></video>
-        <div id="status" class="status">Изберете канал</div>
-    </div>
+<div class="vid-container">
+    <video id="video" controls autoplay></video>
+    <div id="log">Изберете канал</div>
+</div>
 
-    <div class="grid" id="buttons"></div>
+<div class="grid">
+    <button onclick="p('http://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8', 'БНТ 1')">БНТ 1</button>
+    <button onclick="p('http://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8', 'БНТ 2')">БНТ 2</button>
+    <button onclick="p('http://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8', 'БНТ 3')">БНТ 3</button>
+    
+    <button onclick="p('http://195.24.51.58/hls/nova_live.m3u8', 'NOVA')">NOVA</button>
+    <button onclick="p('http://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8', 'On Air')">On Air</button>
+    <button onclick="p('http://84.22.46.188/play/a00i', 'The Voice')">The Voice</button>
+    <button onclick="p('http://84.22.46.188/play/a00j', 'Magic TV')">Magic TV</button>
+    <button onclick="p('http://tv.city.bg/play/tshls/citytv/2.m3u8', 'City TV')">City TV</button>
+    <button onclick="p('http://84.22.46.188/play/a00y', 'FEN TV')">FEN TV</button>
+    <button onclick="p('http://93.155.230.12:8081/hls/live.m3u8', 'Evrokom')">Евроком</button>
+    <button onclick="p('http://84.22.46.188/play/a00l', 'Planeta Folk')">Planeta</button>
+</div>
 
-    <script>
-        const video = document.getElementById('video');
-        const status = document.getElementById('status');
-        const buttonsContainer = document.getElementById('buttons');
+<script>
+    var v = document.getElementById('video');
+    var l = document.getElementById('log');
+    var h = null;
 
-        // Списък с "най-пробивно" работещите линкове за стари браузъри
-        const channels = [
-            // БНТ ПАКЕТ (Директни CDN линкове)
-            { name: "БНТ 1", url: "https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8" },
-            { name: "БНТ 2", url: "https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8" },
-            { name: "БНТ 3 HD", url: "https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8" },
-            { name: "БНТ 4", url: "https://bntlive-cn.cdn.bg/live/color/bnt4/playlist.m3u8" },
-            
-            // ЧАСТНИ (Алтернативни сървъри без тежка защита)
-            { name: "Nova TV", url: "http://195.24.51.58/hls/nova_live.m3u8" },
-            { name: "Bulgaria On Air", url: "http://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8" },
-            { name: "TV1 HD", url: "https://tv1.bg/hls/tv1_1080.m3u8" },
-            { name: "City TV", url: "http://tv.city.bg/play/tshls/citytv/2.m3u8" },
-            
-            // МУЗИКА (Директни IP сървъри - работят най-добре)
-            { name: "The Voice", url: "http://84.22.46.188/play/a00i" },
-            { name: "Magic TV", url: "http://84.22.46.188/play/a00j" },
-            { name: "FEN TV", url: "http://84.22.46.188/play/a00y" },
-            { name: "Balkanika", url: "http://84.22.46.188/play/a00x" },
-            { name: "Planeta Folk", url: "http://84.22.46.188/play/a00l" },
-            
-            // ДРУГИ
-            { name: "Bloomberg BG", url: "https://p.cdn.bg/liven/bloomberg/index.m3u8" },
-            { name: "Agro TV", url: "http://p.cdn.bg/liven/agrotv/index.m3u8" },
-            { name: "Evrokom", url: "http://93.155.230.12:8081/hls/live.m3u8" }
-        ];
-
-        let hls = new Hls();
-
-        function playChannel(url, name) {
-            status.innerText = "Зареждане: " + name;
-            status.style.color = "#ffcc00";
-
-            if (Hls.isSupported()) {
-                hls.destroy();
-                hls = new Hls({
-                    enableWorker: false, // Изключваме за по-стари процесори
-                    debug: false
-                });
-                hls.loadSource(url);
-                hls.attachMedia(video);
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play();
-                    status.innerText = "В момента гледате: " + name;
-                    status.style.color = "#00ff00";
-                });
-                hls.on(Hls.Events.ERROR, (e, data) => {
-                    if (data.fatal) {
-                        status.innerText = "Грешка: " + name + " не тръгва.";
-                        status.style.color = "#ff4444";
-                    }
-                });
-            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                video.src = url;
-                video.play();
-            }
+    function p(u, n) {
+        l.innerText = "Зареждане: " + n;
+        if (h) { h.destroy(); }
+        
+        if (Hls.isSupported()) {
+            h = new Hls({
+                // Philips Fix: ограничаваме заявките, за да не претоварим ТВ-то
+                manifestLoadingMaxRetry: 2,
+                xhrSetup: function(xhr) {
+                    // Опит за премахване на заглавията, които дразнят сървърите
+                    xhr.withCredentials = false;
+                }
+            });
+            h.loadSource(u);
+            h.attachMedia(v);
+            h.on(Hls.Events.MANIFEST_PARSED, function() {
+                v.play();
+                l.innerText = "Гледате: " + n;
+            });
+            h.on(Hls.Events.ERROR, function(e, d) {
+                if (d.fatal) { l.innerText = "Грешка: " + n; }
+            });
+        } else {
+            v.src = u;
+            v.play();
         }
+    }
 
-        // Генериране на бутоните
-        channels.forEach(ch => {
-            const btn = document.createElement('button');
-            btn.innerText = ch.name;
-            btn.onclick = () => playChannel(ch.url, ch.name);
-            btn.onkeydown = (e) => { if (e.keyCode === 13) playChannel(ch.url, ch.name); };
-            buttonsContainer.appendChild(btn);
-        });
+    // Авто-старт със City TV (щом той работи, да имаме картина веднага)
+    window.onload = function() { p('http://tv.city.bg/play/tshls/citytv/2.m3u8', 'City TV'); };
+</script>
 
-        // Първи старт
-        window.onload = () => playChannel(channels[0].url, channels[0].name);
-    </script>
 </body>
 </html>
