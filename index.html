@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BG TV - Philips Stable</title>
+    <title>BG TV Stable</title>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         body { background: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; text-align: center; }
         .player-area { position: sticky; top: 0; background: #000; padding: 15px 0; border-bottom: 2px solid #333; z-index: 1000; }
-        video { width: 95%; max-width: 800px; aspect-ratio: 16/9; background: #111; }
-        #status { font-size: 14px; color: #ffcc00; margin: 10px 0; min-height: 1.2em; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; padding: 20px; max-width: 1000px; margin: 0 auto; }
-        button { background: #222; border: 1px solid #444; color: #fff; padding: 15px 5px; cursor: pointer; border-radius: 8px; font-size: 14px; transition: 0.2s; }
+        video { width: 90%; max-width: 700px; aspect-ratio: 16/9; background: #111; border: 1px solid #444; }
+        #status { font-size: 14px; color: #0f0; margin: 10px 0; min-height: 1.2em; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; padding: 20px; max-width: 900px; margin: 0 auto; }
+        button { background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 15px 5px; cursor: pointer; border-radius: 8px; font-size: 14px; transition: 0.2s; }
         button:focus { background: #0066ff; border-color: #fff; transform: scale(1.1); outline: none; box-shadow: 0 0 15px #0066ff; }
     </style>
 </head>
@@ -22,28 +22,23 @@
     <div id="status">Изберете канал</div>
 </div>
 
-<div class="grid" id="container"></div>
+<div class="grid">
+    <button onclick="play('https://tv.city.bg/play/tshls/citytv/2.m3u8', 'City TV')">City TV</button>
+    <button onclick="play('https://bss1.neterra.tv/thevoice/stream_0.m3u8', 'The Voice')">The Voice</button>
+    <button onclick="play('https://bss1.neterra.tv/magictv/stream_0.m3u8', 'Magic TV')">Magic TV</button>
+    <button onclick="play('https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8', 'БНТ 1')">БНТ 1</button>
+    <button onclick="play('https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8', 'БНТ 2')">БНТ 2</button>
+    <button onclick="play('https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8', 'БНТ 3 HD')">БНТ 3 HD</button>
+    <button onclick="play('https://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8', 'Bulgaria On Air')">Bulgaria On Air</button>
+    <button onclick="play('https://tv1.bg/hls/tv1_1080.m3u8', 'TV1 HD')">TV1 HD</button>
+    <button onclick="play('https://p.cdn.bg/liven/bloomberg/index.m3u8', 'Bloomberg BG')">Bloomberg BG</button>
+    <button onclick="play('http://93.155.230.12:8081/hls/live.m3u8', 'Евроком')">Евроком</button>
+    <button onclick="play('https://p.cdn.bg/liven/agrotv/index.m3u8', 'Agro TV')">Agro TV</button>
+</div>
 
 <script>
-    // Тези линкове са тествани и работят директно през CDN мрежи
-    const channels = [
-        { name: "БНТ 1", url: "https://bntlive-cn.cdn.bg/live/color/bnt1/playlist.m3u8" },
-        { name: "БНТ 2", url: "https://bntlive-cn.cdn.bg/live/color/bnt2/playlist.m3u8" },
-        { name: "БНТ 3 HD", url: "https://bntlive-cn.cdn.bg/live/color/bnt3/playlist.m3u8" },
-        { name: "БНТ 4", url: "https://bntlive-cn.cdn.bg/live/color/bnt4/playlist.m3u8" },
-        { name: "Bulgaria On Air", url: "https://lb-hls.cdn.bg/2006/fls/bonair.stream/playlist.m3u8" },
-        { name: "City TV", url: "https://tv.city.bg/play/tshls/citytv/2.m3u8" },
-        { name: "The Voice", url: "https://bss1.neterra.tv/thevoice/stream_0.m3u8" },
-        { name: "Magic TV", url: "https://bss1.neterra.tv/magictv/stream_0.m3u8" },
-        { name: "TV1 HD", url: "https://tv1.bg/hls/tv1_1080.m3u8" },
-        { name: "Bloomberg BG", url: "https://p.cdn.bg/liven/bloomberg/index.m3u8" },
-        { name: "Agro TV", url: "https://p.cdn.bg/liven/agrotv/index.m3u8" },
-        { name: "Evrokom", url: "http://93.155.230.12:8081/hls/live.m3u8" }
-    ];
-
     const video = document.getElementById('video');
     const status = document.getElementById('status');
-    const container = document.getElementById('container');
     let hls = new Hls();
 
     function play(url, name) {
@@ -58,8 +53,11 @@
                 video.play();
                 status.innerText = "Гледате: " + name;
             });
-            hls.on(Hls.Events.ERROR, () => {
-                status.innerText = "Грешка при зареждане на " + name;
+            hls.on(Hls.Events.ERROR, (event, data) => {
+                if (data.fatal) {
+                    status.innerText = "Грешка при зареждане на " + name;
+                    status.style.color = "#f00";
+                }
             });
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             video.src = url;
@@ -67,17 +65,15 @@
         }
     }
 
-    channels.forEach(ch => {
-        const btn = document.createElement('button');
-        btn.innerText = ch.name;
-        btn.onclick = () => play(ch.url, ch.name);
-        // За навигация с дистанционно
-        btn.onkeydown = (e) => { if(e.keyCode === 13) play(ch.url, ch.name); };
-        container.appendChild(btn);
+    // Добавяме поддръжка за OK/Enter от дистанционното
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 13 && document.activeElement.tagName === 'BUTTON') {
+            document.activeElement.click();
+        }
     });
 
-    // Стартираме със City TV, защото е най-стабилен
-    window.onload = () => play(channels[5].url, channels[5].name);
+    // Стартираме автоматично със City TV при зареждане
+    window.onload = () => play('https://tv.city.bg/play/tshls/citytv/2.m3u8', 'City TV');
 </script>
 
 </body>
